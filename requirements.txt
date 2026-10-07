@@ -1,0 +1,15 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pydantic-settings==2.7.1
+sqlalchemy==2.0.38
+geoalchemy2==0.17.1
+psycopg[binary]==3.2.5
+alembic==1.14.1
+celery[redis]==5.4.0
+geopandas==1.0.1
+pandas==3.0.6
+numpy==2.5.3
+pyogrio==0.10.0
+shapely==2.0.7
+pyproj==3.7.1

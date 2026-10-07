@@ -1,0 +1,64 @@
+x-app: &app
+  image: aereo-geo-measure:dev
+  build:
+    context: .
+    args:
+      REQUIREMENTS: requirements-dev.txt
+  environment:
+    DATABASE_URL: postgresql+psycopg://geo:geo@db:5432/geo
+    REDIS_URL: redis://redis:6379/0
+    UPLOAD_DIR: /data/uploads
+  volumes:
+    - .:/code
+    - uploads:/data/uploads
+
+services:
+  migrate:
+    <<: *app
+    command: alembic upgrade head
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    depends_on: &ready
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  worker:
+    <<: *app
+    command: celery -A app.tasks worker --loglevel=info --concurrency=2
+    depends_on: *ready
+
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: geo
+      POSTGRES_PASSWORD: geo
+      POSTGRES_DB: geo
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geo -d geo"]
+      interval: 5s
+      retries: 10
+      start_period: 60s
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+  uploads:
